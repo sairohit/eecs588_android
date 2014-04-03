@@ -74,8 +74,9 @@ public class BTScanService extends IntentService {
 				public void onLeScan(BluetoothDevice btDevice, int rssi, byte[] scanRecord) {
 					String macAddr = btDevice.getAddress(); 
 					String device = "android"; 
-					String passcode = "eecs588isalright"; 
-					Long ts = System.currentTimeMillis(); 
+					//String passcode = "eecs588isalright"; 
+					String passcode = "test_site"; 
+					Long ts = System.currentTimeMillis()/1000; 
 					String timestamp = ts.toString(); 
 				
 					HttpClient httpClient = new DefaultHttpClient(); 
