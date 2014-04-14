@@ -87,6 +87,8 @@ public class BTScanService extends IntentService {
 			conn.setRequestMethod(HttpPost.METHOD_NAME);
 			conn.setDoInput(true);
 			conn.setDoOutput(true);
+			conn.setRequestProperty("Accept-Charset", "UTF-8");
+			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
 			
 			Long ts = System.currentTimeMillis()/1000; 
 			String timestamp = ts.toString();
@@ -97,8 +99,8 @@ public class BTScanService extends IntentService {
 			params.add(new BasicNameValuePair("rand_mac", "1"));
 			params.add(new BasicNameValuePair("name", "Sai")); 
 			params.add(new BasicNameValuePair("RSSI", Integer.toString(80))); 
-			params.add(new BasicNameValuePair("latitude", "123")); 
-			params.add(new BasicNameValuePair("longitude", "456")); 
+			params.add(new BasicNameValuePair("latitude", "0")); 
+			params.add(new BasicNameValuePair("longitude", "0")); 
 			params.add(new BasicNameValuePair("device", "android"));
 			//params.add(new BasicNameValuePair("fitbitid", "00:11:22:33:44:55")); 
 			//params.add(new BasicNameValuePair("access_addr", "00:11:22:33:44:55")); 
