@@ -1,12 +1,23 @@
 package eecs588.project;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import android.app.Activity;
 import android.app.Fragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -15,11 +26,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements LocationListener {
 
 	static final int REQUEST_ENABLE_BT = 1;  
+	static final int REQUEST_ENABLE_GPS = 2;  
+	static final int BT_REST_PERIOD = 60000; //one minute
 	
 	private BluetoothAdapter btAdap; 
+	private String provider; 
+	private Location location; 
+	private Handler mHandler; 
+	private ScheduledExecutorService scheduleTaskExecutor;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,22 +50,59 @@ public class MainActivity extends Activity {
         }
         
         final BluetoothManager btMan = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE); 
+		final LocationManager locMan = (LocationManager) getSystemService(Context.LOCATION_SERVICE); 
+
         btAdap = btMan.getAdapter(); 
+        mHandler = new Handler();
         
-        //make sure BT is enabled
+        // make sure BT is enabled
         if (btAdap == null || !btAdap.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
         
-        //at this point, bluetooth should be turned on
-        //create the intent, then pass it off to our IntentService
-        //do this every five minutes 
-        Intent myIntent = new Intent(this, BTScanService.class); 
-        Log.e("main activity", "about to start the service"); 
-        startService(myIntent); 
-           
+        // at this point, bluetooth should be turned on
         
+        // make sure GPS is enabled
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE); 
+        boolean enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER); 
+        
+        if (!enabled) {
+        	Intent enableGPSIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        	startActivityForResult(enableGPSIntent, REQUEST_ENABLE_GPS);
+        }
+        
+        // at this point, GPS should be turned on
+        
+             
+        // request location updates with 
+   			// minimum time between location updates = every minute
+       		// and minimum distance between updates = 100 meters (~320 ft)
+        Criteria criteria = new Criteria(); 
+        provider = locMan.getBestProvider(criteria, false); 
+        location = locMan.getLastKnownLocation(provider); 
+        
+        Intent btIntent = new Intent(getBaseContext(), BTScanService.class); 
+		Log.e("main activity", "about to start bt service"); 
+		btIntent.putExtra("location", location); 
+	    startService(btIntent); 
+        
+		Runnable repeatBTScans = new Runnable() {
+			@Override
+			public void run() {
+				Intent btIntent = new Intent(getBaseContext(), BTScanService.class); 
+				Log.e("main activity", "about to start bt service"); 
+					
+				btIntent.putExtra("location", location); 
+			    startService(btIntent); 
+			}
+        };
+        
+	    scheduleTaskExecutor = Executors.newScheduledThreadPool(1); 
+	    scheduleTaskExecutor.scheduleAtFixedRate(repeatBTScans, 0, 60, TimeUnit.SECONDS); 
+	    
+        locMan.requestLocationUpdates(provider, 30000, 0, this);
+
     }
 
 
@@ -99,5 +153,32 @@ public class MainActivity extends Activity {
             return rootView;
         }
     }
+
+	@Override
+	public void onLocationChanged(Location loc) {
+		location = loc; 
+		Toast.makeText(getApplicationContext(), "Got new location!", Toast.LENGTH_SHORT).show(); 
+	}
+
+
+	@Override
+	public void onProviderDisabled(String arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void onProviderEnabled(String arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
